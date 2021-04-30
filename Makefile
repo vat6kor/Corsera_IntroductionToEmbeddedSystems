@@ -10,78 +10,139 @@
 #*****************************************************************************
 
 #------------------------------------------------------------------------------
-# <Put a Description Here>
+# Simple makefile for two target platforms and their own
+# specific compilers. These two platforms are the HOST and
+# the MSP432.
+# The host embedded system will use the native compiler, gcc.
+# The target embedded system will use the cross compiler,
+# arm-none-eabi-gcc.
 #
-# Use: make [TARGET] [PLATFORM-OVERRIDES]
+# @author Vinay Sathyanarayana
+# @date 29 April 2021
+#
+# Use: make [TARGET] [PLATFORM-OVERRIDES] [FUNCTION] [DEBUG - Optional]
+# Example: $ make build PLATFORM=HOST FUNCTION=COURSE1 DEBUG=VERBOSE
 #
 # Build Targets:
-#      <Put a description of the supported targets here>
+#      <FILE>.i - Generate <FILE>.i preprocessed output
+#      <FILE>.asm - Generate <FILE>.asm assembly output
+#      <FILE>.o - Builds <FILE>.o object file
+#      compile-all - Compile all object files, but DO NOT link
+#      build - Builds and links all source files
+#      clean - Removes all generated files
 #
-# Platform Overrides:
-#      <Put a description of the supported Overrides here
+# PLATFORM-OVERRIDES:
+#       PLATFORM=HOST - Compile for HOST using gcc
+#       PLATFORM=MSP432 - Compile for MSP432 using arm-none-eabi-gcc
+#
+# FUNCTION:
+# 			FUNCTION=COURSE1
+# 			FUNCTION=TEST_DATA1
+# 			FUNCTION=TEST_DATA2
+# 			FUNCTION=TEST_MEMMOVE1
+# 			FUNCTION=TEST_MEMMOVE2
+# 			FUNCTION=TEST_MEMMOVE3
+# 			FUNCTION=TEST_MEMCOPY
+# 			FUNCTION=TEST_MEMSET
+# 			FUNCTION=TEST_REVERSE
+#
+# DEBUG:
+#       DEBUG=VERBOSE - Print extra information on the memory data
 #
 #------------------------------------------------------------------------------
 include sources.mk
 
-# Platform Overrides
-PLATFORM = HOST
+# Decide whether the commands will be shown or not
+VERBOSE = TRUE
+
+# Function to be called from main
+FUNCTION 	= COURSE1
+TARGET 		= $(BINPATH)/$(PROJNAME).out
+
+#Out dirs
+BINDIR	:= bin
+GENDIR	:= gen
+LOGDIR	:= log
+
+#gendirs
+CPPDIR	:= gen/cpp
+ASMDIR 	:= gen/asm
+OBJDIR 	:= gen/obj
+
+#paths
+BINPATH := $(TARGETPATH)/$(BINDIR)
+GENPATH := $(TARGETPATH)/$(GENDIR)
+LOGPATH := $(TARGETPATH)/$(LOGDIR)
+
+ASMPATH	:= $(TARGETPATH)/$(ASMDIR)
+CPPPATH	:= $(TARGETPATH)/$(CPPDIR)
+OBJPATH	:= $(TARGETPATH)/$(OBJDIR)
 
 #common variables for all platforms
-BASENAME 			:= c1m2
-TARGET 				:= $(BASENAME).out
-COMMONCFLAGS 	= -Wall -O0 -Werror -g -std=c99
-COMMONLDFLAGS = -Wl,-Map=$(BASENAME).map
-CPPFLAGS 			= -D$(PLATFORM) $(INCLUDES)
-NMFLAGS				= -A -S --size-sort -s
+COMMONCFLAGS 	= -Wall -O0 -Werror -g -std=c99 -Wno-pointer-sign
+COMMONLDFLAGS 	= -Wl,-Map=$(PROJNAME).map
+CPPFLAGS 		= -D$(PLATFORM) -D$(FUNCTION) $(INCLUDES)
+NMFLAGS			= -A -S --size-sort -s
 OBJDUMPFLAGS	= -d
 
 ifeq ($(PLATFORM), MSP432)
-
 	# Architectures Specific Flags
-	LINKER_PATH	= -L ../
+	LINKER_PATH	= -L ./
 	LINKER_FILE = msp432p401r.lds
-	CPU 				= cortex-m4
-	ARCH 				= armv7e-m
-	SPECS 			= nosys.specs
+	CPU 		= cortex-m4
+	ARCH 		= armv7e-m
+	SPECS 		= nosys.specs
 	ADDITIONAL 	= -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 	# C compiler Flags and Defines
-	CC 				= arm-none-eabi-gcc
-	CFLAGS 		= $(COMMONCFLAGS) -mcpu=$(CPU) -march=$(ARCH) --specs=$(SPECS) $(ADDITIONAL)
+	CC 		= arm-none-eabi-gcc
+	CFLAGS 	= $(COMMONCFLAGS) -mcpu=$(CPU) -march=$(ARCH) --specs=$(SPECS) $(ADDITIONAL)
 
 	# Linker Flags and Defines
-	LD 				= arm-none-eabi-ld
-	LDFLAGS 	= $(COMMONLDFLAGS) $(LINKER_PATH) -T $(LINKER_FILE) -nostdlib
+	LD 		= arm-none-eabi-ld
+	LDFLAGS = $(COMMONLDFLAGS) $(LINKER_PATH) -T $(LINKER_FILE) -nostdlib
 
 	#GNU Bin Utils Flags and Defines
 	OBJDUMP = arm-none-eabi-objdump
-	SIZE 		= arm-none-eabi-size
-	NM 			= arm-none-eabi-nm
+	SIZE 	= arm-none-eabi-size
+	NM 		= arm-none-eabi-nm
 else
-
 	# C compiler Flags and Defines
-	CC 			= gcc
+	CC 		= gcc
 	CFLAGS 	= $(COMMONCFLAGS)
 
 	# Linker Flags and Defines
-	LD 			= ld
+	LD 		= ld
 	LDFLAGS	= $(COMMONLDFLAGS)
 
 	#GNU Bin Utils Flags and Defines
 	OBJDUMP = objdump
-	SIZE 		= size
-	NM			= nm
+	SIZE 	= size
+	NM		= nm
 endif
 
-OBJS := $(SOURCES:.c=.o)
-ASMS := $(SOURCES:.c=.asm)
-PRES := $(SOURCES:.c=.i)
+# Define objects for all sources
+CPP	 = $(foreach src, $(notdir $(SOURCES:.c=.i)), $(addprefix $(CPPPATH)/, $(src)))
+ASMS = $(foreach src, $(notdir $(SOURCES:.c=.asm)), $(addprefix $(ASMPATH)/, $(src)))
+OBJS = $(foreach src, $(notdir $(SOURCES:.c=.o)), $(addprefix $(OBJPATH)/, $(src)))
+
+RM 			= rm -rf
+RMDIR 		= rm -rf
+MKDIR 		= mkdir -p
+ERRIGNORE 	= 2>/dev/null
+
+# Hide or not the calls depending of VERBOSE
+ifeq ($(VERBOSE),TRUE)
+	HIDE =
+else
+	HIDE = @
+endif
 
 ##############################################################################################################
 #Generates the object files of all c-program implementation files and its dependecies.
 
 #This implementation places dependency files into a subdirectory named .deps.
-DEPDIR := .deps
+DEPDIR := $(subst $(SOURCEDIRS),.deps,$(SOURCEPATH))
 
 # DEPFLAGS:
 
@@ -106,21 +167,31 @@ DEPDIR := .deps
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 # Delete the built-in rules for building object files from .c files, so that, this rule is used instead.
-#%.o : %.c
-%.o : %.c $(DEPDIR)/%.d | $(DEPDIR)
-	$(CC) $(DEPFLAGS) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+# Define the function that will generate each rule
+define generateRules
+$$(OBJPATH)/%.o: %.c $$(DEPDIR)/%.d | $$(DEPDIR) directories
+	$$(CC) -c $$(DEPFLAGS) $$(CPPFLAGS) $$(CFLAGS) $$< -o $$@
+endef
+
+# Generate rules
+$(foreach targetdir, $(OBJPATH), $(eval $(call generateRules, $(targetdir))))
 
 # Declare a rule for creating the dependency directory if it doesn’t exist.
 $(DEPDIR): ; @mkdir -p $@
 
 # Generate a list of all the dependency files that could exist.
-DEPFILES := $(SOURCES:%.c=$(DEPDIR)/%.d)
+DEPFILES := $(foreach src,$(notdir $(SOURCES:.c=.d)),$(addprefix $(DEPDIR)/,$(src)))
 
 # Mention each dependency file as a target, so that make won’t fail if the file doesn’t exist.
 $(DEPFILES):
 
 include $(wildcard $(DEPFILES))
 ############################################################################################################
+
+.PHONY: directories compile-all build build-all clean build-test
+
+directories:
+	@mkdir -p $(BINPATH) $(GENPATH) $(LOGPATH) $(OBJPATH) $(ASMPATH) $(CPPPATH)
 
 # Generates the preprocessed output of all c-program implementation files.
 %.i: %.c
@@ -131,29 +202,25 @@ include $(wildcard $(DEPFILES))
 	$(CC) $(CPPFLAGS) -S $(CFLAGS) -o $@ $<
 
 # Compile all objects but do NOT link them.
-.PHONY: compile-all
 compile-all: $(SOURCES)
-	$(CC) $(CPPFLAGS) -c $(CFLAGS) $^
+	$(CC) $(CPPFLAGS) -c $^ $(CFLAGS)
 
-#################################################################################
-# Complete build:	*.d      - Dependency Files for each source file
-#									*.o      - Individual object files
-#									c1m2.map - Map file for the full build
-#									c1m2.out - Output Executable file
-.PHONY: build
+# Complete build:
 build: $(TARGET)
-
 $(TARGET):$(OBJS)
 	$(CC) $(LDFLAGS) $^ -o $@
-	$(OBJDUMP) $(OBJDUMPFLAGS) $^ $@ > $*_objdump.txt
-	$(NM) $(NMFLAGS) $@ > $*_nm.txt
-	$(SIZE) $^ $@ > $*_size.txt
+#	$(CC) $(LDFLAGS) $(notdir $^) -o $@
+#	$(CC) $(LDFLAGS) $^ -o $@
+#	$(OBJDUMP) $(OBJDUMPFLAGS) $^ $@ > $*_objdump.txt
+#	$(NM) $(NMFLAGS) $@ > $*_nm.txt
+#	$(SIZE) $^ $@ > $*_size.txt
 
-.PHONY: build-all
 build-all: $(PRES) $(ASMS) $(OBJS) $(TARGET)
 
 # Remove all compiled objects, preprocessed outputs, assembly outputs executable files and build output files.
-.PHONY: clean
 clean:
-	rm -f $(TARGET) *.map *.o *.asm *.i *.txt
-	rm -r $(DEPDIR)
+	$(HIDE)$(RMDIR) $(TARGETPATH) $(DEPDIR) $(ERRIGNORE)
+	$(HIDE)$(RM) $(TARGET) $(ERRIGNORE)
+	@echo Cleaning done !
+
+#	@mkdir -p $(BINPATH) $(GENPATH) $(LOGPATH) $(OBJPATH) $(ASMPATH) $(CPPPATH)
