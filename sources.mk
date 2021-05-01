@@ -9,21 +9,20 @@
 #
 #*****************************************************************************
 
-# Set project directory one level above the Makefile directory. $(CURDIR) is a
-# GNU make variable containing the path to the current working directory
-
 # Platform Overrides
-PLATFORM = MSP432
+PLATFORM = HOST
 
+# Set project directory to the root of project. $(CURDIR) is a GNU make variable
+# containing the path to the current working directory
 PROJDIR	:= $(realpath $(CURDIR))
 PROJNAME:= finalAssessment
 
+SOURCEDIRS	= src/common
+INCLUDEDIRS	= include/common
+
 ifeq ($(PLATFORM),MSP432)
-	SOURCEDIRS	= src/common src/msp432
-	INCLUDEDIRS	= include/CMSIS include/common include/msp432
-else
-	SOURCEDIRS	= src/common
-	INCLUDEDIRS	= include/common
+	SOURCEDIRS	+= src/msp432
+	INCLUDEDIRS	+= include/CMSIS include/msp432
 endif
 
 TARGETDIRS 	:= out

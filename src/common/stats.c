@@ -21,9 +21,9 @@
  *
  */
 
-
 #include <stdio.h>
 #include "stats.h"
+#include "platform.h"
 
 void print_array(uint8_t* data, uint8_t size){
 

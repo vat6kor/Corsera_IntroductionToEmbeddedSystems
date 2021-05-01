@@ -52,12 +52,13 @@
 #------------------------------------------------------------------------------
 include sources.mk
 
-# Decide whether the commands will be shown or not
-VERBOSE = TRUE
-
-# Function to be called from main
+# Platform overrides
+PLATFORM 	= HOST
 FUNCTION 	= COURSE1
-TARGET 		= $(BINPATH)/$(PROJNAME).out
+DEBUG		= VERBOSE
+
+#output
+TARGET 	= $(BINPATH)/$(PROJNAME).out
 
 #Out dirs
 BINDIR	:= bin
@@ -81,7 +82,13 @@ OBJPATH	:= $(TARGETPATH)/$(OBJDIR)
 #common variables for all platforms
 COMMONCFLAGS 	= -Wall -O0 -Werror -g -std=c99 -Wno-pointer-sign
 COMMONLDFLAGS 	= -Wl,-Map=$(PROJNAME).map
-CPPFLAGS 		= -D$(PLATFORM) -D$(FUNCTION) $(INCLUDES)
+
+ifeq ($(DEBUG), VERBOSE)
+	CPPFLAGS = -D$(PLATFORM) -D$(FUNCTION) -D$(DEBUG) $(INCLUDES)
+else
+	CPPFLAGS = -D$(PLATFORM) -D$(FUNCTION) $(INCLUDES)
+endif
+
 NMFLAGS			= -A -S --size-sort -s
 OBJDUMPFLAGS	= -d
 
@@ -170,6 +177,7 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 # Define the function that will generate each rule
 define generateRules
 $$(OBJPATH)/%.o: %.c $$(DEPDIR)/%.d | $$(DEPDIR) directories
+	@echo Building $$@
 	$$(CC) -c $$(DEPFLAGS) $$(CPPFLAGS) $$(CFLAGS) $$< -o $$@
 endef
 
@@ -194,11 +202,11 @@ directories:
 	@mkdir -p $(BINPATH) $(GENPATH) $(LOGPATH) $(OBJPATH) $(ASMPATH) $(CPPPATH)
 
 # Generates the preprocessed output of all c-program implementation files.
-%.i: %.c
+$(CPPPATH)/%.i: %.c
 	$(CC) $(CPPFLAGS) -E $(CFLAGS) -o $@ $^
 
 # Create assembly file of a C source.
-%.asm: %.c
+$(ASMPATH)/%.asm: %.c
 	$(CC) $(CPPFLAGS) -S $(CFLAGS) -o $@ $<
 
 # Compile all objects but do NOT link them.
@@ -209,18 +217,14 @@ compile-all: $(SOURCES)
 build: $(TARGET)
 $(TARGET):$(OBJS)
 	$(CC) $(LDFLAGS) $^ -o $@
-#	$(CC) $(LDFLAGS) $(notdir $^) -o $@
-#	$(CC) $(LDFLAGS) $^ -o $@
-#	$(OBJDUMP) $(OBJDUMPFLAGS) $^ $@ > $*_objdump.txt
-#	$(NM) $(NMFLAGS) $@ > $*_nm.txt
-#	$(SIZE) $^ $@ > $*_size.txt
+	$(OBJDUMP) $(OBJDUMPFLAGS) $^ $@ > $(LOGPATH)/$(notdir $*)_objdump.txt
+	$(NM) $(NMFLAGS) $@ > $(LOGPATH)/$(notdir $*)_nm.txt
+	$(SIZE) $^ $@ > $(LOGPATH)/$(notdir $*)_size.txt
 
-build-all: $(PRES) $(ASMS) $(OBJS) $(TARGET)
+build-all: directories $(CPP) $(ASMS) $(OBJS) $(TARGET)
 
 # Remove all compiled objects, preprocessed outputs, assembly outputs executable files and build output files.
 clean:
 	$(HIDE)$(RMDIR) $(TARGETPATH) $(DEPDIR) $(ERRIGNORE)
 	$(HIDE)$(RM) $(TARGET) $(ERRIGNORE)
 	@echo Cleaning done !
-
-#	@mkdir -p $(BINPATH) $(GENPATH) $(LOGPATH) $(OBJPATH) $(ASMPATH) $(CPPPATH)
