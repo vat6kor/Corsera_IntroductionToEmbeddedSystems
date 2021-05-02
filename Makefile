@@ -55,7 +55,8 @@ include sources.mk
 # Platform overrides
 PLATFORM 	= HOST
 FUNCTION 	= COURSE1
-DEBUG		= VERBOSE
+VERBOSE		= TRUE
+#DEBUG		= VERBOSE
 
 #output
 TARGET 	= $(BINPATH)/$(PROJNAME).out
@@ -107,7 +108,7 @@ ifeq ($(PLATFORM), MSP432)
 
 	# Linker Flags and Defines
 	LD 		= arm-none-eabi-ld
-	LDFLAGS = $(COMMONLDFLAGS) $(LINKER_PATH) -T $(LINKER_FILE) -nostdlib
+	LDFLAGS = $(COMMONLDFLAGS) $(LINKER_PATH) -T $(LINKER_FILE) -nostartfiles
 
 	#GNU Bin Utils Flags and Defines
 	OBJDUMP = arm-none-eabi-objdump
@@ -149,7 +150,7 @@ endif
 #Generates the object files of all c-program implementation files and its dependecies.
 
 #This implementation places dependency files into a subdirectory named .deps.
-DEPDIR := $(subst $(SOURCEDIRS),.deps,$(SOURCEPATH))
+DEPDIR := $(PROJDIR)/.deps
 
 # DEPFLAGS:
 
@@ -177,7 +178,6 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 # Define the function that will generate each rule
 define generateRules
 $$(OBJPATH)/%.o: %.c $$(DEPDIR)/%.d | $$(DEPDIR) directories
-	@echo Building $$@
 	$$(CC) -c $$(DEPFLAGS) $$(CPPFLAGS) $$(CFLAGS) $$< -o $$@
 endef
 
@@ -216,10 +216,13 @@ compile-all: $(SOURCES)
 # Complete build:
 build: $(TARGET)
 $(TARGET):$(OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	mv $(PROJNAME).map $(LOGPATH)
 	$(OBJDUMP) $(OBJDUMPFLAGS) $^ $@ > $(LOGPATH)/$(notdir $*)_objdump.txt
 	$(NM) $(NMFLAGS) $@ > $(LOGPATH)/$(notdir $*)_nm.txt
 	$(SIZE) $^ $@ > $(LOGPATH)/$(notdir $*)_size.txt
+	@echo "\a\n\nBuild successful\nplease find the binary at ./out/bin/finalAssessment.out"
+	
 
 build-all: directories $(CPP) $(ASMS) $(OBJS) $(TARGET)
 

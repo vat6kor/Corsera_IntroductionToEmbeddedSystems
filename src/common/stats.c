@@ -34,7 +34,7 @@ void print_array(uint8_t* data, uint8_t size){
             PRINTF("%u, ",data[i]);
         }
 
-        printf("%u]\n",data[size-1]);
+        PRINTF("%u]\n",data[size-1]);
     #endif
 }
 

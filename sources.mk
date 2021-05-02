@@ -40,7 +40,7 @@ VPATH = $(SOURCEPATH)
 
 # Add your include paths to this variable
 # Generate the GCC includes parameters by adding -I before each source folder
-INCLUDES = $(foreach dir, $(INCLUDEPATH), $(addprefix -I$(INCLUDE), $(dir)))
+INCLUDES = $(foreach dir, $(INCLUDEPATH), $(addprefix -I $(INCLUDE), $(dir)))
 
 # Create a list of *.c sources in DIRS
 SOURCES = $(foreach dir,$(SOURCEPATH),$(wildcard $(dir)/*.c))
