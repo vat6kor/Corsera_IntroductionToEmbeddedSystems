@@ -1,5 +1,5 @@
 
-#### Coursera - Embedded Software - Course 1 Final Assessment <br /> ####
+#### Coursera - Introduction to Embedded Systems - Course 1 Final Assessment <br /> ####
 Vinay Sathyanarayana <br />
 
 This repository contains solution to the final assessment of "Intro to Embedded Systems"
