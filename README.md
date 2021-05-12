@@ -1,7 +1,12 @@
 
 #### Coursera - Embedded Software - Course 1 Final Assessment <br /> ####
-
 Vinay Sathyanarayana <br />
+
+This repository contains solution to the final assessment of "Intro to Embedded Systems"
+course on coursera. This assessment, fpcuses on memory management and data handling. For
+more details on assignment requirements, please check the following url.
+
+Assessment requirements: https://www.coursera.org/learn/introduction-embedded-systems/peer/prT70/expanded-build-system-and-memory
 
 ----
 
